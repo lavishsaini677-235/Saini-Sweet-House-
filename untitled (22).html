@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Saini Sweet House</title>
+<style>
+body{font-family:Arial;margin:0;background:#f5f5f5;}
+header{background:#d62828;color:white;padding:15px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100;}
+.cartIcon{font-size:20px;background:white;color:#d62828;padding:8px 12px;border-radius:20px;}
+
+/* Decorative Banner */
+.banner{
+    background: linear-gradient(135deg, #d62828, #f77f00);
+    color:white;
+    height:150px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    text-align:center;
+    font-family:'Georgia','Times New Roman',serif;
+    font-weight:bold;
+    border-radius:15px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    border: 3px solid #fcbf49;
+    margin: 10px;
+    text-shadow: 2px 2px 6px rgba(0,0,0,0.7);
+}
+.banner-title{
+    font-size:32px;
+}
+.banner-subtitle{
+    font-size:18px;
+    font-weight:normal;
+    margin-top:5px;
+}
+
+.offer-banner{
+    background:#f4c430;color:#222;text-align:center;padding:10px;font-size:18px;font-weight:bold;margin:10px 0;border-radius:5px;
+}
+.menu-toggle{display:flex;justify-content:center;margin:15px;}
+.menu-toggle button{
+    background:#d62828;color:white;border:none;padding:10px 20px;margin:0 5px;border-radius:5px;cursor:pointer;font-size:16px;
+}
+.menu{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:15px;padding:10px;display:none;}
+.item{background:white;padding:10px;border-radius:10px;text-align:center;box-shadow:0 3px 8px rgba(0,0,0,0.2);}
+.cart{background:white;margin:15px;padding:15px;border-radius:10px;}
+.admin{background:white;margin:15px;padding:15px;border-radius:10px;}
+footer{background:#222;color:white;text-align:center;padding:15px;font-size:16px;}
+input,select{padding:8px;margin:5px;width:95%;}
+
+.admin button{cursor:pointer;margin:5px;border-radius:5px;font-size:16px;padding:8px 15px; border:none;}
+.addBtn{background:#2a9d8f;color:white;}
+.updateBtn{background:#f4a261;color:white;}
+.removeBtn{background:#e63946;color:white;}
+.removeBtn:hover{background:#d62828;}
+
+@media(max-width:480px){
+    .banner{font-size:24px;height:120px;}
+    .banner-title{font-size:26px;}
+    .banner-subtitle{font-size:14px;}
+    .menu-toggle button{padding:8px 15px;font-size:14px;}
+}
+</style>
+</head>
+<body>
+
+<header>
+<h2>Saini Sweet House</h2>
+<div class="cartIcon">🛒 <span id="count">0</span></div>
+</header>
+
+<div class="banner">
+    <div class="banner-title">Saini Sweet House</div>
+    <div class="banner-subtitle">Fresh Food, Affordable Prices!</div>
+</div>
+
+<div class="offer-banner">
+  Flat 10% Off on All Sweets!
+</div>
+
+<div class="menu-toggle">
+<button onclick="showMenu('fastfood')">Fast Food</button>
+<button onclick="showMenu('sweets')">Sweets</button>
+</div>
+
+<div class="menu" id="fastfood-menu"></div>
+<div class="menu" id="sweets-menu"></div>
+
+<div class="cart">
+<h2>Cart</h2>
+<ul id="cart"></ul>
+<h3>Total ₹<span id="total">0</span></h3>
+<button onclick="payUPI()">Pay with UPI</button>
+<button onclick="whatsapp()">Order on WhatsApp</button>
+<button onclick="clearCart()">Remove All Items</button>
+</div>
+
+<div class="admin">
+<h2>Admin: Add / Edit / Remove Products</h2>
+<p style="background:#ffe066;color:#222;padding:8px;border-radius:5px;text-align:center;font-weight:bold;">
+All product edits, additions, or deletions can be done directly here on the site.
+</p>
+
+<select id="prodType">
+    <option value="fastfood">Fast Food</option>
+    <option value="sweets">Sweets</option>
+</select>
+
+<input id="prodName" placeholder="Product Name">
+<input id="prodPrice" type="number" placeholder="Price (₹)">
+
+<button class="addBtn" onclick="addProduct()">Add Product</button>
+<button class="updateBtn" onclick="updateProduct()">Update Selected Product</button>
+
+<h3>Existing Products</h3>
+<select id="existingProducts" style="width:95%;padding:8px;margin:5px;"></select>
+<button class="removeBtn" onclick="removeProduct()">Remove Selected Product</button>
+</div>
+
+<footer>
+<p>Khedi Markanda Kurukshetra, Haryana, India | Phone: 90505 63281</p>
+</footer>
+
+<script>
+let cart=[];
+let total=0;
+let allProducts=[];
+
+function showMenu(type){
+    document.getElementById('fastfood-menu').style.display=type==='fastfood'?'grid':'none';
+    document.getElementById('sweets-menu').style.display=type==='sweets'?'grid':'none';
+}
+
+function renderCart(){
+    let list=document.getElementById("cart");
+    list.innerHTML="";
+    cart.forEach((item,index)=>{
+        let li=document.createElement("li");
+        li.innerHTML=item.name+" ₹"+item.price+" Qty:"+item.qty+
+        " <button onclick='plus("+index+")'>+</button>"+
+        " <button onclick='minus("+index+")'>-</button>"+
+        " <button onclick='removeItem("+index+")'>Remove</button>";
+        list.appendChild(li);
+    });
+    document.getElementById("total").innerText=total;
+    document.getElementById("count").innerText=cart.length;
+}
+
+function addItem(name,price){
+    let found=cart.find(i=>i.name===name);
+    if(found){ found.qty++; total+=price; }
+    else{ cart.push({name:name,price:price,qty:1}); total+=price; }
+    renderCart();
+}
+function plus(i){ cart[i].qty++; total+=cart[i].price; renderCart(); }
+function minus(i){ if(cart[i].qty>1){ cart[i].qty--; total-=cart[i].price; } renderCart(); }
+function removeItem(i){ total-=cart[i].price*cart[i].qty; cart.splice(i,1); renderCart(); }
+function clearCart(){ cart=[]; total=0; renderCart(); }
+
+function payUPI(){ 
+    let upi="upi://pay?pa=yourupi@upi&pn=SainiSweetHouse&am="+total;
+    window.location.href=upi;
+}
+function whatsapp(){ 
+    let msg="Order: ";
+    cart.forEach(i=>{ msg+=i.name+" x"+i.qty+", "; });
+    msg+=" Total ₹"+total;
+    let url="https://wa.me/9050563281text="+encodeURIComponent(msg);
+    window.open(url);
+}
+
+// Admin
+function addProduct(){
+    let type=document.getElementById("prodType").value;
+    let name=document.getElementById("prodName").value;
+    let price=parseInt(document.getElementById("prodPrice").value);
+    if(!name || !price){ alert("Enter all fields"); return; }
+
+    let menuId = type==="fastfood" ? "fastfood-menu" : "sweets-menu";
+    let menu=document.getElementById(menuId);
+    let div=document.createElement("div");
+    div.className="item";
+    div.innerHTML="<h3>"+name+"</h3><p>₹"+price+"</p>"+
+                  "<button onclick=\"addItem('"+name+"',"+price+")\">Add</button>";
+    menu.appendChild(div);
+    allProducts.push({type,name,price,div:div});
+    populateExistingProducts();
+
+    document.getElementById("prodName").value="";
+    document.getElementById("prodPrice").value="";
+}
+
+function populateExistingProducts(){
+    const sel = document.getElementById("existingProducts");
+    sel.innerHTML = "";
+    allProducts.forEach((prod,index)=>{
+        let option = document.createElement("option");
+        option.value = index;
+        option.text = prod.type + " - " + prod.name;
+        sel.appendChild(option);
+    });
+}
+
+// Pre-fill fields when a product is selected
+document.getElementById("existingProducts").addEventListener("change", function(){
+    let sel = this;
+    if(sel.selectedIndex === -1) return;
+    let prod = allProducts[sel.value];
+    document.getElementById("prodName").value = prod.name;
+    document.getElementById("prodPrice").value = prod.price;
+});
+
+// Update product
+function updateProduct(){
+    let sel = document.getElementById("existingProducts");
+    if(sel.selectedIndex===-1){ alert("Select a product"); return; }
+    let prodIndex = sel.value;
+    let prod = allProducts[prodIndex];
+
+    let newName = document.getElementById("prodName").value;
+    let newPrice = parseInt(document.getElementById("prodPrice").value);
+    if(!newName || !newPrice){ alert("Enter name and price"); return; }
+
+    prod.name = newName;
+    prod.price = newPrice;
+    prod.div.getElementsByTagName("h3")[0].innerText = newName;
+    prod.div.getElementsByTagName("p")[0].innerText = "₹"+newPrice;
+    prod.div.getElementsByTagName("button")[0].setAttribute("onclick","addItem('"+newName+"',"+newPrice+")");
+
+    alert("Product updated successfully!");
+    document.getElementById("prodName").value="";
+    document.getElementById("prodPrice").value="";
+    populateExistingProducts();
+}
+
+// Remove product
+function removeProduct(){
+    let sel = document.getElementById("existingProducts");
+    if(sel.selectedIndex === -1){ alert("Select a product"); return; }
+    let prodIndex = sel.value;
+    let prod = allProducts[prodIndex];
+    prod.div.remove();
+    allProducts.splice(prodIndex,1);
+    alert("Product removed successfully!");
+    populateExistingProducts();
+}
+
+// Initialize products
+window.onload = function(){
+    let fastFood = [
+        {name:"Tea",price:10},
+        {name:"Chowmin",price:60},
+        {name:"Samosa",price:12},
+        {name:"Burger",price:15}
+    ];
+    let sweets = [
+        {name:"Rasgulla",price:250},
+        {name:"Gulab Jamun",price:250},
+        {name:"Khowa Burfi",price:350},
+        {name:"Chamcham",price:300}
+    ];
+    fastFood.forEach(p=>{
+        let div=document.createElement("div");
+        div.className="item";
+        div.innerHTML="<h3>"+p.name+"</h3><p>₹"+p.price+"</p>"+
+                      "<button onclick=\"addItem('"+p.name+"',"+p.price+")\">Add</button>";
+        document.getElementById("fastfood-menu").appendChild(div);
+        allProducts.push({type:"fastfood",name:p.name,price:p.price,div:div});
+    });
+    sweets.forEach(p=>{
+        let div=document.createElement("div");
+        div.className="item";
+        div.innerHTML="<h3>"+p.name+"</h3><p>₹"+p.price+"</p>"+
+                      "<button onclick=\"addItem('"+p.name+"',"+p.price+")\">Add</button>";
+        document.getElementById("sweets-menu").appendChild(div);
+        allProducts.push({type:"sweets",name:p.name,price:p.price,div:div});
+    });
+    populateExistingProducts();
+};
+</script>
+
+</body>
+</html>
